@@ -1,0 +1,53 @@
+Les clés que nous avons trouvé se trouvent dans le fichier cle_valide.txt
+
+Inverse de la fonction S (valerus en hexadécimal) :
+    x :    0 1 2 3 4 5 6 7 8 9 a b c d e f
+    S(x) : 5 e f 8 c 1 2 d b 4 6 3 0 7 9 2
+
+Inverse de la fonction de permutation:
+    i :    0 1
+    P(i) : 0 
+
+Inverse du chiffrement Present24:
+    Etape 1: etat XOR K11
+    Etape 2: Pour i variant de 10 à 1 :
+                Permutation_inverser(etat)
+                Substitution_inverse(etat)
+                etat XOR ki
+    Etape 3: retourner etat
+
+I-Les choix adoptés lors de la programmation
+    Le premier choix que l'on a fait a été de considérer les nombres binaires comme des listes de 0 et de 1.
+    On trouvait cela plus simple lorsque l'on avait besoin de faire des opérations sur seulement certains bits
+    d'un nombre. 
+    On a évité d'utiliser les fonction len() car nous connaissons a l'avance la taille des listes que nous manipulons
+    et n'avons donc pas besoin de calculer la taile de ces listes.
+    On a ensuite décidé de convertir ces nombres binaires en entier en base 10 lorsqu'on avait  
+    besoin de les stocker pour gagner en mémoire (un entier en base 10 prend moins de place qu'une liste de 0 et de 1).
+    On perd certes un peu de temps a convertir les listes de 0 et de 1 en base 10 mais on gagne du temps par la suite
+    lorsque l'on doit comparer les entiers (comparer 2 entiers est plus rapide que de comparer 2 listes).
+    Cependant on recontrait beacoup de problèmes lors des conversions, et le programme ne nous donnait plus les 
+    bonnes clés k1 k2, nous avons donc décidé, malgré la perte énorme de performance, de stocker les valeur 
+    binaires dans des listes.
+    Pour gagner un peu de temps d'éxécution on a fait appel a la bibiolthèque multiprocessing. On a utilisé
+    la fonction Pool.map() qui permet de répartir équitablement une tache (appel d'une fonction) entre les 
+    différents processeurs.
+
+II-Description de notre attaque par le milieu
+    La première étape de l'attaque par le milieu est de créer une liste lm = [[Present24ki(m1),ki]] qui contient tout les
+    m1 chiffrés avec tout les ki possibles et une liste lc = [Inverse_Present24ki(c1),ki] qui contient tout les c1 
+    déchiffrés avec tout les ki possibles. (ces 2 listes sont dont chacune de taille 2**24)
+    La deuxième étape est de trier ces 2 liste en fonction de la valeur du chiffré pour lm et en fonction de la valeur du
+    déchiffré pour lc.
+    La troisième étape est de parcourir ces listes et de créer une liste l_cle_potentiel = [[k1,k2]] tel que :
+        Present24k1(m1) = Inverse_Present24k2(c1)
+    Grace au tri effectué à l'étape 2, on gagne beaucoup de temps sur la recherche des clés potentiels.
+    En effet, on parcours lm et tant que lm[i][0] >= lc[j][0], on incrémente i, si on trouve lm[i][0] == lc[j][0]
+    alors on ajoute le couple de clés k1 k2 a la liste l_cle_potentiel (on ajoute donc lm[i][1] et lc[j][1]); quand on a 
+    lm[i][0] < lc[j][0] on incrémente j. De cette manière on évite énormément de comparaisons inutiles.
+    Enfin, la quatrième étape de est trouver les couples de clés k1k2 parmi la liste l_cle_potentiel qui vérifient :
+        Present24k1(m2) = Inverse_Present24k2(c2)
+    Ces couples de clés k1k2 vérifient donc:
+        c1 = Present24k2(Present24k1(m1)) et c2 = Present24k2(Present24k1(m2))
+    A chaque fois que l'on trouve un couple k1k2 qui vérifie cette équation, on l'affiche dans le terminal et on l'écrit dans le 
+    fichier l_cle_valide.txt.
